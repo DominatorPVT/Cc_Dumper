@@ -4,8 +4,8 @@ import random
 import logging
 import sys
 from faker import Faker
-from telegram import ParseMode
-from telegram.ext import ApplicationBuilder
+from telegram import Bot
+from telegram.constants import ParseMode  # ✅ v20+ compatible
 
 # --- CONFIGURATION ---
 IMAGE_URL = "https://files.catbox.moe/qjmq6l.jpg"
@@ -82,34 +82,24 @@ def format_bin_metrics():
 
 # --- ASYNC BOT LOOP ---
 async def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    async with app:
-        while True:
-            try:
-                # Generate single CC
-                profile = generate_card_profile()
-                caption, cc_string = format_card_caption(profile)
-                await app.bot.send_photo(
-                    chat_id=CHANNEL_ID, 
-                    photo=IMAGE_URL, 
-                    caption=caption, 
-                    parse_mode=ParseMode.MARKDOWN
-                )
+    bot = Bot(token=BOT_TOKEN)
+    while True:
+        try:
+            # Send CC
+            profile = generate_card_profile()
+            caption, _ = format_card_caption(profile)
+            await bot.send_photo(chat_id=CHANNEL_ID, photo=IMAGE_URL, caption=caption, parse_mode=ParseMode.MARKDOWN)
 
-                # Generate BIN metrics
-                bins = format_bin_metrics()
-                for b in bins:
-                    await app.bot.send_message(
-                        chat_id=CHANNEL_ID,
-                        text=f"💎 BIN DROP: ```{b}```",
-                        parse_mode=ParseMode.MARKDOWN
-                    )
+            # Send BINs
+            bins = format_bin_metrics()
+            for b in bins:
+                await bot.send_message(chat_id=CHANNEL_ID, text=f"💎 BIN DROP: ```{b}```", parse_mode=ParseMode.MARKDOWN)
 
-                await asyncio.sleep(random.randint(10, 15))
+            await asyncio.sleep(random.randint(10, 15))
 
-            except Exception as e:
-                logging.error(f"Error: {e}", exc_info=True)
-                await asyncio.sleep(5)
+        except Exception as e:
+            logging.error(f"Error: {e}", exc_info=True)
+            await asyncio.sleep(5)
 
 if __name__ == "__main__":
     asyncio.run(main())
