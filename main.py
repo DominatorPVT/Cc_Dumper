@@ -4,7 +4,8 @@ import random
 import logging
 import sys
 from faker import Faker
-from telegram import ParseMode, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder
 
 # --- CONFIGURATION ---
@@ -87,25 +88,26 @@ async def main():
     async with app:
         while True:
             try:
-                # Generate single CC with copy button
+                # --- Generate single CC with one-click copy button ---
                 profile = generate_card_profile()
                 caption, cc_string = format_card_caption(profile)
-                
+
                 keyboard = InlineKeyboardMarkup([[
                     InlineKeyboardButton("📋 Copy CC", switch_inline_query_current_chat=cc_string)
                 ]])
-                
+
                 await app.bot.send_photo(CHANNEL_ID, IMAGE_URL, caption=caption, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
-                
-                # Generate BIN metrics with copy button
+
+                # --- Generate BIN metrics with copy buttons ---
                 bins = format_bin_metrics()
                 for b in bins:
                     bin_keyboard = InlineKeyboardMarkup([[
                         InlineKeyboardButton(f"📋 Copy BIN {b}", switch_inline_query_current_chat=b)
                     ]])
                     await app.bot.send_message(CHANNEL_ID, f"💎 BIN DROP: `{b}`", parse_mode=ParseMode.MARKDOWN, reply_markup=bin_keyboard)
-                
+
                 await asyncio.sleep(random.randint(10, 15))
+
             except Exception as e:
                 logging.error(f"Error: {e}", exc_info=True)
                 await asyncio.sleep(5)
