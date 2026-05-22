@@ -4,18 +4,16 @@ import random
 import logging
 import sys
 from faker import Faker
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.constants import ParseMode
+from telegram import ParseMode
 from telegram.ext import ApplicationBuilder
 
 # --- CONFIGURATION ---
 IMAGE_URL = "https://files.catbox.moe/qjmq6l.jpg"
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CHANNEL_ID = os.environ.get("CHANNEL_ID")
-BOT_USERNAME = os.environ.get("BOT_USERNAME")  # Add your bot username here, like 'MyBot'
 
-if not BOT_TOKEN or not CHANNEL_ID or not BOT_USERNAME:
-    print("Error: BOT_TOKEN, CHANNEL_ID or BOT_USERNAME not set!", file=sys.stderr)
+if not BOT_TOKEN or not CHANNEL_ID:
+    print("Error: BOT_TOKEN or CHANNEL_ID not set!", file=sys.stderr)
     sys.exit(1)
 
 fake = Faker()
@@ -67,7 +65,7 @@ def format_card_caption(profile):
         f"┏━━━━━━━━━━━━━━━━━━━━\n"
         f"┃ 💎 𝘿𝙤𝙢𝙞𝙣𝙖𝙩𝙤𝙧 𝘿𝙧𝙤𝙥 💳\n"
         f"┣━━━━━━━━━━━━━━━━━━━━\n"
-        f"┃ 💎 𝑪𝑪: `{cc_string}`\n"
+        f"┃ 💎 𝑪𝑪: ```{cc_string}```\n"
         f"┃ 👤 Owner: {profile['full_name']}\n"
         f"┃ 📍 Address: {profile['street_address']}\n"
         f"┃ 📮 Pin Code: {profile['zip_code']}\n"
@@ -88,33 +86,24 @@ async def main():
     async with app:
         while True:
             try:
+                # Generate single CC
                 profile = generate_card_profile()
                 caption, cc_string = format_card_caption(profile)
-                
-                # Check chat type safe button
-                if CHANNEL_ID.startswith("@"):  # Channel
-                    keyboard = InlineKeyboardMarkup([[
-                        InlineKeyboardButton("📋 Copy CC", url=f"https://t.me/{BOT_USERNAME}?start=inlinequery_{cc_string}")
-                    ]])
-                else:
-                    keyboard = InlineKeyboardMarkup([[
-                        InlineKeyboardButton("📋 Copy CC", switch_inline_query_current_chat=cc_string)
-                    ]])
+                await app.bot.send_photo(
+                    chat_id=CHANNEL_ID, 
+                    photo=IMAGE_URL, 
+                    caption=caption, 
+                    parse_mode=ParseMode.MARKDOWN
+                )
 
-                await app.bot.send_photo(CHANNEL_ID, IMAGE_URL, caption=caption, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
-
-                # BIN metrics
+                # Generate BIN metrics
                 bins = format_bin_metrics()
                 for b in bins:
-                    if CHANNEL_ID.startswith("@"):
-                        bin_keyboard = InlineKeyboardMarkup([[
-                            InlineKeyboardButton(f"📋 Copy BIN {b}", url=f"https://t.me/{BOT_USERNAME}?start=inlinequery_{b}")
-                        ]])
-                    else:
-                        bin_keyboard = InlineKeyboardMarkup([[
-                            InlineKeyboardButton(f"📋 Copy BIN {b}", switch_inline_query_current_chat=b)
-                        ]])
-                    await app.bot.send_message(CHANNEL_ID, f"💎 BIN DROP: `{b}`", parse_mode=ParseMode.MARKDOWN, reply_markup=bin_keyboard)
+                    await app.bot.send_message(
+                        chat_id=CHANNEL_ID,
+                        text=f"💎 BIN DROP: ```{b}```",
+                        parse_mode=ParseMode.MARKDOWN
+                    )
 
                 await asyncio.sleep(random.randint(10, 15))
 
