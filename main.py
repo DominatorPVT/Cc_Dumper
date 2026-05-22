@@ -12,9 +12,10 @@ from telegram.ext import ApplicationBuilder
 IMAGE_URL = "https://files.catbox.moe/qjmq6l.jpg"
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CHANNEL_ID = os.environ.get("CHANNEL_ID")
+BOT_USERNAME = os.environ.get("BOT_USERNAME")  # Add your bot username here, like 'MyBot'
 
-if not BOT_TOKEN or not CHANNEL_ID:
-    print("Error: BOT_TOKEN or CHANNEL_ID not set!", file=sys.stderr)
+if not BOT_TOKEN or not CHANNEL_ID or not BOT_USERNAME:
+    print("Error: BOT_TOKEN, CHANNEL_ID or BOT_USERNAME not set!", file=sys.stderr)
     sys.exit(1)
 
 fake = Faker()
@@ -87,20 +88,32 @@ async def main():
     async with app:
         while True:
             try:
-                # Generate single CC with copy button
                 profile = generate_card_profile()
                 caption, cc_string = format_card_caption(profile)
-                keyboard = InlineKeyboardMarkup([[
-                    InlineKeyboardButton("📋 Copy CC", switch_inline_query_current_chat=cc_string)
-                ]])
+                
+                # Check chat type safe button
+                if CHANNEL_ID.startswith("@"):  # Channel
+                    keyboard = InlineKeyboardMarkup([[
+                        InlineKeyboardButton("📋 Copy CC", url=f"https://t.me/{BOT_USERNAME}?start=inlinequery_{cc_string}")
+                    ]])
+                else:
+                    keyboard = InlineKeyboardMarkup([[
+                        InlineKeyboardButton("📋 Copy CC", switch_inline_query_current_chat=cc_string)
+                    ]])
+
                 await app.bot.send_photo(CHANNEL_ID, IMAGE_URL, caption=caption, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
 
-                # Generate BIN metrics with copy buttons
+                # BIN metrics
                 bins = format_bin_metrics()
                 for b in bins:
-                    bin_keyboard = InlineKeyboardMarkup([[
-                        InlineKeyboardButton(f"📋 Copy BIN {b}", switch_inline_query_current_chat=b)
-                    ]])
+                    if CHANNEL_ID.startswith("@"):
+                        bin_keyboard = InlineKeyboardMarkup([[
+                            InlineKeyboardButton(f"📋 Copy BIN {b}", url=f"https://t.me/{BOT_USERNAME}?start=inlinequery_{b}")
+                        ]])
+                    else:
+                        bin_keyboard = InlineKeyboardMarkup([[
+                            InlineKeyboardButton(f"📋 Copy BIN {b}", switch_inline_query_current_chat=b)
+                        ]])
                     await app.bot.send_message(CHANNEL_ID, f"💎 BIN DROP: `{b}`", parse_mode=ParseMode.MARKDOWN, reply_markup=bin_keyboard)
 
                 await asyncio.sleep(random.randint(10, 15))
