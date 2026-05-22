@@ -12,38 +12,25 @@ jobs:
     env:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+      BOT_USERNAME: ${{ secrets.BOT_USERNAME }}
 
     steps:
-      # 1️⃣ Checkout the repo
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2️⃣ Setup Python
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
 
-      # 3️⃣ Upgrade pip
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
 
-      # 4️⃣ Install dependencies only if missing
       - name: Install dependencies if missing
         run: |
-          echo "Checking & installing required packages..."
           for pkg in faker python-telegram-bot; do
-            if ! python -c "import $pkg" &> /dev/null; then
-              echo "Installing $pkg..."
-              pip install $pkg
-            else
-              echo "$pkg already installed."
-            fi
+            python -m pip show $pkg || python -m pip install $pkg
           done
 
-      # 5️⃣ Run the bot with logs
       - name: Run bot
-        run: |
-          echo "🚀 Starting your bot..."
-          python main.py
-          echo "🛑 Bot stopped."
+        run: python main.py
