@@ -1,11 +1,10 @@
-# main.py
 import os
 import asyncio
 import random
 import logging
 import sys
 from faker import Faker
-from telegram import ParseMode
+from telegram import ParseMode, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder
 
 # --- CONFIGURATION ---
@@ -61,28 +60,26 @@ def generate_card_profile():
     }
 
 def format_card_caption(p):
-    caption = "┏━━━━━━━━━━━━━━━━━━━━\n"
-    caption += "┃ 💎 𝘿𝙤𝙢𝙞𝙣𝙖𝙩𝙤𝙧 𝘿𝙧𝙤𝙥 💳\n"
-    caption += "┣━━━━━━━━━━━━━━━━━━━━\n"
-    caption += f"┃ 💎 𝑪𝑪: `{p['number']}|{p['month']}|{p['year']}|{p['cvv']}`\n"
-    caption += f"┃ 👤 Owner: {p['full_name']}\n"
-    caption += f"┃ 📍 Address: {p['street_address']}\n"
-    caption += f"┃ 📮 Pin Code: {p['zip_code']}\n"
-    caption += f"┃ 🏦 Bank: {p['bank_name']}\n"
-    caption += f"┃ 🪄 Type: {p['card_brand']} - Debit - Standard\n"
-    caption += f"┃ 🌐 Country: {p['country']}\n"
-    caption += "┗━━━━━━━━━━━━━━━━━━━━\n"
-    caption += "✦ 𝑫𝑬𝑽 - [𝘿𝙤𝙢𝙞𝙣𝙖𝙩𝙤𝙧](https://t.me/DOMINATOR_XYZ) ✦"
-    return caption
+    cc_string = f"{p['number']}|{p['month']}|{p['year']}|{p['cvv']}"
+    caption = (
+        "┏━━━━━━━━━━━━━━━━━━━━\n"
+        "┃ 💎 𝘿𝙤𝙢𝙞𝙣𝙖𝙩𝙤𝙧 𝘿𝙧𝙤𝙥 💳\n"
+        "┣━━━━━━━━━━━━━━━━━━━━\n"
+        f"┃ 💎 𝑪𝑪: `{cc_string}`\n"
+        f"┃ 👤 Owner: {p['full_name']}\n"
+        f"┃ 📍 Address: {p['street_address']}\n"
+        f"┃ 📮 Pin Code: {p['zip_code']}\n"
+        f"┃ 🏦 Bank: {p['bank_name']}\n"
+        f"┃ 🪄 Type: {p['card_brand']} - Debit - Standard\n"
+        f"┃ 🌐 Country: {p['country']}\n"
+        "┗━━━━━━━━━━━━━━━━━━━━\n"
+        "✦ 𝑫𝑬𝑽 - [𝘿𝙤𝙢𝙞𝙣𝙖𝙩𝙤𝙧](https://t.me/DOMINATOR_XYZ) ✦"
+    )
+    return caption, cc_string
 
 def format_bin_metrics():
     bins = [str(random.randint(400000, 699999)) for _ in range(5)]
-    message = "💎💳💎 BIN DROP 💳💎💎\n"
-    message += "┏━━━━━━ BIN DROP 💎 ━━━━━━┓\n"
-    for b in bins:
-        message += f"┃ 🃏 ⭐ {b} 💎\n"
-    message += "┗━━━━━━━━━━━━━━━━━━━━┛"
-    return message
+    return bins
 
 # --- ASYNC BOT LOOP ---
 async def main():
@@ -90,16 +87,25 @@ async def main():
     async with app:
         while True:
             try:
-                for _ in range(10):  # 10 separate card messages
-                    profile = generate_card_profile()
-                    caption = format_card_caption(profile)
-                    await app.bot.send_photo(CHANNEL_ID, IMAGE_URL, caption=caption, parse_mode=ParseMode.MARKDOWN)
-                    await asyncio.sleep(random.randint(8,10))
+                # Generate single CC with copy button
+                profile = generate_card_profile()
+                caption, cc_string = format_card_caption(profile)
                 
-                # BIN metrics after 10 cards
-                bin_msg = format_bin_metrics()
-                await app.bot.send_message(CHANNEL_ID, bin_msg, parse_mode=ParseMode.MARKDOWN)
-                await asyncio.sleep(random.randint(8,10))
+                keyboard = InlineKeyboardMarkup([[
+                    InlineKeyboardButton("📋 Copy CC", switch_inline_query_current_chat=cc_string)
+                ]])
+                
+                await app.bot.send_photo(CHANNEL_ID, IMAGE_URL, caption=caption, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+                
+                # Generate BIN metrics with copy button
+                bins = format_bin_metrics()
+                for b in bins:
+                    bin_keyboard = InlineKeyboardMarkup([[
+                        InlineKeyboardButton(f"📋 Copy BIN {b}", switch_inline_query_current_chat=b)
+                    ]])
+                    await app.bot.send_message(CHANNEL_ID, f"💎 BIN DROP: `{b}`", parse_mode=ParseMode.MARKDOWN, reply_markup=bin_keyboard)
+                
+                await asyncio.sleep(random.randint(10, 15))
             except Exception as e:
                 logging.error(f"Error: {e}", exc_info=True)
                 await asyncio.sleep(5)
